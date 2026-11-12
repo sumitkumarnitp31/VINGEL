@@ -3,10 +3,9 @@ idea_parser.py
 Uses Gemini AI to parse a product idea into business simulation assumptions.
 Falls back to smart heuristics if no API key is set.
 """
-import json
-import re
 from backend.core.models import ProductInput, BusinessAssumptions
-from backend.core.config import USE_GEMINI, GEMINI_API_KEY, GEMINI_MODEL
+from backend.core.config import USE_GEMINI
+from backend.core.gemini_client import generate_json
 
 
 _PROMPT = """You are a senior market research analyst. Analyze this product and return
@@ -78,27 +77,21 @@ def _heuristic_fallback(product: ProductInput) -> BusinessAssumptions:
 
 def _gemini_parse(product: ProductInput) -> BusinessAssumptions | None:
     """Call Gemini API to generate assumptions. Returns None on any failure."""
+    prompt = _PROMPT.format(
+        product_name=product.product_name,
+        product_description=product.product_description,
+        target_market=product.target_market,
+        price=product.price,
+        billing_model=product.billing_model,
+        geography=", ".join(product.geography),
+        competitors=", ".join(product.competitors),
+        channels=", ".join(product.channels),
+        features=", ".join(product.features),
+    )
+    data = generate_json(prompt)
+    if data is None:
+        return None
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel(GEMINI_MODEL)
-        prompt = _PROMPT.format(
-            product_name=product.product_name,
-            product_description=product.product_description,
-            target_market=product.target_market,
-            price=product.price,
-            billing_model=product.billing_model,
-            geography=", ".join(product.geography),
-            competitors=", ".join(product.competitors),
-            channels=", ".join(product.channels),
-            features=", ".join(product.features),
-        )
-        response = model.generate_content(prompt, request_options={"timeout": 15})
-        raw = response.text.strip()
-        # Strip markdown code fences if present
-        raw = re.sub(r"^```[a-z]*\n?", "", raw)
-        raw = re.sub(r"\n?```$", "", raw)
-        data = json.loads(raw)
         return BusinessAssumptions(**data)
     except Exception:
         return None
