@@ -63,9 +63,9 @@ def render_sidebar(is_dark: bool = True) -> dict:
         cf = st.session_state.get("prefill_config")
         if cf is None:
             cf = {
-                "n_users": 100_000,
-                "n_months": 24,
-                "n_monte_carlo": 100
+                "n_users": 10_000,
+                "n_months": 12,
+                "n_monte_carlo": 20
             }
             st.session_state["prefill_config"] = cf
 
@@ -106,11 +106,17 @@ def render_sidebar(is_dark: bool = True) -> dict:
                                     placeholder="AI scheduling\nSlack integration", height=68)
 
         st.markdown('<div class="sb-sec">Simulation</div>', unsafe_allow_html=True)
+        _pop_opts = [5_000, 10_000, 25_000, 50_000, 100_000]
+        _default_pop = cf.get("n_users", 10_000)
+        if _default_pop not in _pop_opts:
+            _default_pop = 10_000
         n_users  = st.select_slider("Population",
-                                     options=[10_000, 25_000, 50_000, 100_000],
-                                     value=cf.get("n_users", 100_000))
-        n_months = st.slider("Time horizon (months)", 12, 36, cf.get("n_months", 24))
-        n_mc     = st.slider("Monte Carlo runs",      50, 500, cf.get("n_monte_carlo", 100), step=50)
+                                     options=_pop_opts,
+                                     value=_default_pop)
+        _default_months = max(12, min(36, int(cf.get("n_months", 12))))
+        n_months = st.slider("Time horizon (months)", 12, 36, _default_months)
+        _default_mc = max(10, min(500, int(cf.get("n_monte_carlo", 20))))
+        n_mc     = st.slider("Monte Carlo runs",      10, 500, _default_mc, step=10)
 
         st.markdown("<div style='margin:.75rem 0'></div>", unsafe_allow_html=True)
         run_btn = st.button("Run Simulation →", type="primary", use_container_width=True)

@@ -2,7 +2,7 @@ import streamlit as st
 from components.tab_graph import render_graph
 import os
 
-BACKEND = os.environ.get("BACKEND_URL", "http://localhost:8000")
+BACKEND = os.environ.get("BACKEND_URL", "http://localhost:8000").rstrip("/")
 
 result = st.session_state.get("result")
 if not result:

@@ -160,7 +160,7 @@ def _gemini_segments(product: ProductInput) -> list[CustomerSegment] | None:
             billing_model=product.billing_model,
             geography=", ".join(product.geography),
         )
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, request_options={"timeout": 15})
         raw = response.text.strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw)
         raw = re.sub(r"\n?```$", "", raw)

@@ -16,6 +16,7 @@ Relationships
 
 Graceful no-op if Neo4j is unreachable — returns {source: "unavailable"}.
 """
+import time
 import math
 import numpy as np
 from backend.core.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, USE_NEO4J
@@ -24,10 +25,11 @@ _STATUS_LABELS = {0: "unaware", 1: "aware", 2: "active", 3: "churned"}
 _SEGMENT_COLORS = ["#818cf8", "#34d399", "#fbbf24", "#f472b6", "#a855f7", "#0ea5e9", "#f97316", "#14b8a6"]
 
 _driver = None
+_last_fail_ts = 0.0
 
 
 def _get_driver():
-    global _driver
+    global _driver, _last_fail_ts
     if _driver is not None:
         try:
             _driver.verify_connectivity()
@@ -38,12 +40,22 @@ def _get_driver():
     if not USE_NEO4J:
         return None
 
+    # Avoid repeatedly blocking requests if Neo4j was recently unreachable
+    if _last_fail_ts and (time.monotonic() - _last_fail_ts) < 60.0:
+        return None
+
     try:
         from neo4j import GraphDatabase
-        _driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+        _driver = GraphDatabase.driver(
+            NEO4J_URI,
+            auth=(NEO4J_USER, NEO4J_PASSWORD),
+            connection_timeout=2.0,
+        )
         _driver.verify_connectivity()
+        _last_fail_ts = 0.0
         return _driver
     except Exception as e:
+        _last_fail_ts = time.monotonic()
         print(f"[graph] Neo4j unavailable: {e}")
         return None
 

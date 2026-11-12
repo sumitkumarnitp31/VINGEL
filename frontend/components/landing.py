@@ -4,25 +4,25 @@ import requests
 
 
 _CARDS = [
-    ("🤖", "Sarvam AI Analysis",
-     "Sarvam AI generates TAM, churn, virality and 4 tailored "
+    ("🤖", "Gemini AI Analysis",
+     "Gemini AI generates TAM, churn, virality and tailored "
      "customer segments specific to your product and market."),
     ("⚡", "Vectorized Engine",
-     "100k synthetic users · 24-month adoption funnel · pure NumPy — "
+     "Synthetic users · adoption funnel · pure NumPy — "
      "results in seconds, not minutes."),
     ("📊", "Monte Carlo Bands",
-     "100 parameter-varied runs yield P10 / P50 / P90 revenue envelopes "
+     "Parameter-varied runs yield P10 / P50 / P90 revenue envelopes "
      "so you see the full distribution of outcomes."),
-    ("⛓️", "Monad Blockchain",
-     "Anchor your simulation hash on Monad testnet — cryptographic proof "
-     "of your analysis at a specific point in time."),
+    ("🌐", "Population Graph",
+     "Explore customer segments and adoption states interactively "
+     "via Neo4j graph visualization."),
 ]
 
 _STATS = [
-    ("100k",  "Synthetic Users"),
-    ("100×",  "Monte Carlo Runs"),
-    ("4",     "AI Segments"),
-    ("<30s",  "Full Simulation"),
+    ("10k+",  "Synthetic Users"),
+    ("20×+",  "Monte Carlo Runs"),
+    ("4–8",   "Customer Segments"),
+    ("<10s",  "Quick Demo"),
 ]
 
 
@@ -30,7 +30,7 @@ def render_landing(backend_url: str) -> None:
     st.markdown(
         '<div class="vg-badge">'
         '<span class="vg-badge-dot"></span>'
-        'AI-Powered &nbsp;·&nbsp; Monte Carlo &nbsp;·&nbsp; Monad Blockchain'
+        'Gemini AI &nbsp;·&nbsp; Monte Carlo &nbsp;·&nbsp; Vectorized NumPy'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -90,10 +90,11 @@ def render_landing(backend_url: str) -> None:
 
 
 def _run_demo(backend_url: str) -> None:
-    with st.spinner("Simulating market dynamics…"):
+    backend_url = backend_url.rstrip("/")
+    with st.spinner("Simulating market dynamics (first request on free tier may take ~30s to wake server)…"):
         try:
-            r  = requests.get(f"{backend_url}/api/demo",       timeout=90)
-            ri = requests.get(f"{backend_url}/api/demo-input", timeout=10)
+            r  = requests.get(f"{backend_url}/api/demo",       timeout=120)
+            ri = requests.get(f"{backend_url}/api/demo-input", timeout=30)
             r.raise_for_status()
             di = ri.json()
             st.session_state.update({
@@ -106,7 +107,7 @@ def _run_demo(backend_url: str) -> None:
                 gd = requests.get(
                     f"{backend_url}/api/graph/nodes",
                     params={"product": r.json().get("product_name", "ProjectFlow Pro"), "limit": 50},
-                    timeout=30,
+                    timeout=10,
                 )
                 st.session_state["graph_data"] = gd.json() if gd.ok else {"source": "unavailable"}
             except Exception:

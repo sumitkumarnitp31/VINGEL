@@ -6,7 +6,7 @@ from components.tab_graph import render_graph_preview
 import plotly.graph_objects as go
 import os
 
-BACKEND = os.environ.get("BACKEND_URL", "http://localhost:8000")
+BACKEND = os.environ.get("BACKEND_URL", "http://localhost:8000").rstrip("/")
 
 result = st.session_state.get("result")
 if not result:

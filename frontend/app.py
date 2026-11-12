@@ -175,7 +175,7 @@ canvas{{position:absolute;inset:0;width:100%;height:100%}}
 }})();
 </script></body></html>"""
 
-BACKEND = os.environ.get("BACKEND_URL", "http://localhost:8000")
+BACKEND = os.environ.get("BACKEND_URL", "http://localhost:8000").rstrip("/")
 
 st.set_page_config(
     page_title="VINGEL — Market Simulator",

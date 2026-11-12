@@ -93,7 +93,7 @@ def _gemini_parse(product: ProductInput) -> BusinessAssumptions | None:
             channels=", ".join(product.channels),
             features=", ".join(product.features),
         )
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, request_options={"timeout": 15})
         raw = response.text.strip()
         # Strip markdown code fences if present
         raw = re.sub(r"^```[a-z]*\n?", "", raw)

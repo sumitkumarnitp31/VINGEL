@@ -67,7 +67,7 @@ _DEMO_PRODUCT = ProductInput(
     ],
 )
 
-_DEMO_CONFIG = SimulationConfig(n_users=100_000, n_months=24, n_monte_carlo=100, random_seed=42)
+_DEMO_CONFIG = SimulationConfig(n_users=10_000, n_months=12, n_monte_carlo=20, random_seed=42)
 
 
 # ── Shared build helper ───────────────────────────────────────────────────────
