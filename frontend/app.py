@@ -1,12 +1,19 @@
+import os
+import sys
+
+_FRONTEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if _FRONTEND_DIR not in sys.path:
+    sys.path.insert(0, _FRONTEND_DIR)
+
 import streamlit as st
 import streamlit.components.v1 as components
 import requests
 import pandas as pd
-import os
 
-from components.styles   import inject_styles, inject_effects
-from components.sidebar  import render_sidebar
-from components.kpi_row  import render_kpi_row
+from components.styles    import inject_styles, inject_effects
+from components.sidebar   import render_sidebar
+from components.kpi_row   import render_kpi_row
+from components           import tab_graph as _tab_graph  # noqa: F401 - preload for st.navigation
 
 
 def _build_sim_animation_html(is_dark: bool, n_users: int = 100_000) -> str:

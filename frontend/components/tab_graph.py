@@ -2,7 +2,7 @@
 import math
 import json as _json
 import streamlit as st
-import streamlit.components.v1 as components
+import streamlit.components.v1 as st_components
 import pandas as pd
 import requests
 
@@ -187,7 +187,7 @@ def render_graph_preview(gd: dict, is_dark: bool = True, result: dict | None = N
         gd = synth
         st.caption("Simulated sample topology (connect Neo4j Desktop for full 2,000-node DB persistence).")
     try:
-        components.html(_build_graph_html(gd, is_dark), height=560, scrolling=False)
+        st_components.html(_build_graph_html(gd, is_dark), height=560, scrolling=False)
     except ImportError:
         st.warning("pyvis not installed — run `./run.sh install`")
     except Exception as e:
@@ -283,7 +283,7 @@ def render_graph(backend_url: str, result: dict, is_dark: bool = True) -> None:
 
     # ── Graph ─────────────────────────────────────────────────────────────
     try:
-        components.html(_build_graph_html(gd, is_dark), height=660, scrolling=False)
+        st_components.html(_build_graph_html(gd, is_dark), height=660, scrolling=False)
     except ImportError:
         st.error("pyvis not installed — run `./run.sh install`")
     except Exception as e:
