@@ -28,3 +28,4 @@ def generate_json(prompt: str, timeout: float = 15.0) -> dict | None:
         return json.loads(raw)
     except Exception:
         return None
+
