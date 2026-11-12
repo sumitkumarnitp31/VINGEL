@@ -105,24 +105,12 @@ def render_sidebar(is_dark: bool = True) -> dict:
                                     value="\n".join(pf.get("features",[])) or "",
                                     placeholder="AI scheduling\nSlack integration", height=68)
 
-        # ── Simulation ───────────────────────────────────────────────────
         st.markdown('<div class="sb-sec">Simulation</div>', unsafe_allow_html=True)
         n_users  = st.select_slider("Population",
                                      options=[10_000, 25_000, 50_000, 100_000],
                                      value=cf.get("n_users", 100_000))
         n_months = st.slider("Time horizon (months)", 12, 36, cf.get("n_months", 24))
         n_mc     = st.slider("Monte Carlo runs",      50, 500, cf.get("n_monte_carlo", 100), step=50)
-
-        # Monad Gating Address
-        monad_wallet = st.text_input(
-            "Monad Wallet Address",
-            value=st.session_state.get("monad_wallet", ""),
-            placeholder="0x... (Hold ≥ 0.01 MON)",
-            help="If provided, simulation runs through the balance-gated on-chain contract.",
-            key="monad_wallet_input"
-        )
-        # Store in session state for other pages
-        st.session_state["monad_wallet"] = monad_wallet
 
         st.markdown("<div style='margin:.75rem 0'></div>", unsafe_allow_html=True)
         run_btn = st.button("Run Simulation →", type="primary", use_container_width=True)
@@ -146,5 +134,4 @@ def render_sidebar(is_dark: bool = True) -> dict:
         "vault_owner_id": "",
         "vault_password": "",
         "save_vault_btn": False,
-        "monad_wallet":   monad_wallet,
     }

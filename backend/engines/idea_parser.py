@@ -1,12 +1,12 @@
 """
 idea_parser.py
-Uses Sarvam AI to parse a product idea into business simulation assumptions.
+Uses Gemini AI to parse a product idea into business simulation assumptions.
 Falls back to smart heuristics if no API key is set.
 """
 import json
 import re
 from backend.core.models import ProductInput, BusinessAssumptions
-from backend.core.config import USE_SARVAM, SARVAM_API_KEY, SARVAM_MODEL, SARVAM_BASE_URL
+from backend.core.config import USE_GEMINI, GEMINI_API_KEY, GEMINI_MODEL
 
 
 _PROMPT = """You are a senior market research analyst. Analyze this product and return
@@ -76,7 +76,38 @@ def _heuristic_fallback(product: ProductInput) -> BusinessAssumptions:
     )
 
 
+def _gemini_parse(product: ProductInput) -> BusinessAssumptions | None:
+    """Call Gemini API to generate assumptions. Returns None on any failure."""
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel(GEMINI_MODEL)
+        prompt = _PROMPT.format(
+            product_name=product.product_name,
+            product_description=product.product_description,
+            target_market=product.target_market,
+            price=product.price,
+            billing_model=product.billing_model,
+            geography=", ".join(product.geography),
+            competitors=", ".join(product.competitors),
+            channels=", ".join(product.channels),
+            features=", ".join(product.features),
+        )
+        response = model.generate_content(prompt)
+        raw = response.text.strip()
+        # Strip markdown code fences if present
+        raw = re.sub(r"^```[a-z]*\n?", "", raw)
+        raw = re.sub(r"\n?```$", "", raw)
+        data = json.loads(raw)
+        return BusinessAssumptions(**data)
+    except Exception:
+        return None
+
+
 def parse_idea(product: ProductInput) -> tuple[BusinessAssumptions, bool]:
-    """Returns (BusinessAssumptions, used_sarvam: bool)."""
-    # Hardcoded bypass to consume 0 tokens and respond instantly
-    return _heuristic_fallback(product), True
+    """Returns (BusinessAssumptions, used_gemini: bool)."""
+    if USE_GEMINI:
+        result = _gemini_parse(product)
+        if result is not None:
+            return result, True
+    return _heuristic_fallback(product), False

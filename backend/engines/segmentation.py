@@ -1,12 +1,12 @@
 """
 segmentation.py
-Uses Sarvam AI to generate customer segments with behavioral parameters.
+Uses Gemini AI to generate customer segments with behavioral parameters.
 Falls back to curated defaults if no API key is set.
 """
 import json
 import re
 from backend.core.models import ProductInput, CustomerSegment
-from backend.core.config import USE_SARVAM, SARVAM_API_KEY, SARVAM_MODEL, SARVAM_BASE_URL
+from backend.core.config import USE_GEMINI, GEMINI_API_KEY, GEMINI_MODEL
 
 
 _PROMPT = """You are a customer segmentation expert. Create 4 realistic customer segments
@@ -146,11 +146,39 @@ def _normalize(segments: list[CustomerSegment]) -> list[CustomerSegment]:
     return segments
 
 
+def _gemini_segments(product: ProductInput) -> list[CustomerSegment] | None:
+    """Call Gemini API to generate segments. Returns None on any failure."""
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel(GEMINI_MODEL)
+        prompt = _PROMPT.format(
+            product_name=product.product_name,
+            product_description=product.product_description,
+            target_market=product.target_market,
+            price=product.price,
+            billing_model=product.billing_model,
+            geography=", ".join(product.geography),
+        )
+        response = model.generate_content(prompt)
+        raw = response.text.strip()
+        raw = re.sub(r"^```[a-z]*\n?", "", raw)
+        raw = re.sub(r"\n?```$", "", raw)
+        data = json.loads(raw)
+        segments = [CustomerSegment(**s) for s in data["segments"]]
+        return _normalize(segments)
+    except Exception:
+        return None
+
+
 def generate_segments(product: ProductInput) -> tuple[list[CustomerSegment], bool]:
-    """Returns (segments, used_sarvam: bool)."""
+    """Returns (segments, used_gemini: bool)."""
+    if USE_GEMINI:
+        result = _gemini_segments(product)
+        if result is not None:
+            return result, True
     is_b2b = (product.price >= 30 or any(
         kw in product.target_market.lower()
         for kw in ("team", "business", "company", "enterprise", "smb", "saas", "b2b", "startup")
     ))
-    # Hardcoded bypass to consume 0 tokens and respond instantly
-    return _normalize(_B2B_DEFAULTS if is_b2b else _CONSUMER_DEFAULTS), True
+    return _normalize(_B2B_DEFAULTS if is_b2b else _CONSUMER_DEFAULTS), False

@@ -190,9 +190,7 @@ _PAGES = [
     st.Page("pages/p_customers.py",   title="Customers",   icon="👥"),
     st.Page("pages/p_segments.py",    title="Segments",    icon="🎯"),
     st.Page("pages/p_assumptions.py", title="Assumptions", icon="⚙️"),
-    st.Page("pages/p_vault.py",       title="Vault",       icon="🔒"),
     st.Page("pages/p_graph.py",       title="Graph",       icon="🌐"),
-    st.Page("pages/p_verify.py",      title="Verify",      icon="🔍"),
 ]
 
 pg = st.navigation(_PAGES, position="hidden")
@@ -247,19 +245,9 @@ if cfg["run_btn"]:
 
     with col_log:
         with st.status("Running VINGEL simulation…", expanded=True) as sim_status:
-            st.write("🤖  Calling Sarvam AI — generating market assumptions and 4 customer segments…")
+            st.write("🤖  Calling Gemini AI — generating market assumptions and customer segments…")
             try:
-                wallet = cfg.get("monad_wallet", "").strip()
-                if wallet:
-                    st.write(f"💜  On-chain Simulation Gating — Checking MON balance & requesting job on Monad…")
-                    gated_payload = {
-                        "wallet_address": wallet,
-                        "product": payload["product"],
-                        "config": payload["config"]
-                    }
-                    resp = requests.post(f"{BACKEND}/api/simulate/gated", json=gated_payload, timeout=120)
-                else:
-                    resp = requests.post(f"{BACKEND}/api/simulate/full", json=payload, timeout=120)
+                resp = requests.post(f"{BACKEND}/api/simulate/full", json=payload, timeout=120)
                 resp.raise_for_status()
             except requests.exceptions.ConnectionError:
                 sim_status.update(label="Backend not running", state="error")
@@ -289,19 +277,6 @@ if cfg["run_btn"]:
                 f"⚡  Simulation complete — "
                 f"{n_u:,} users · {n_m}-month funnel · {n_mc} Monte Carlo runs"
             )
-
-            # Show Monad on-chain result summary
-            on_chain = result.get("on_chain")
-            if on_chain:
-                if on_chain.get("job_id"):
-                    bal = on_chain.get("balance_mon")
-                    bal_str = f" · {bal:.4f} MON" if bal is not None else ""
-                    st.write(f"💜  Monad anchored — Job: `{on_chain['job_id'][:18]}…`{bal_str}")
-                elif on_chain.get("rpc_reachable"):
-                    bal = on_chain.get("balance_mon")
-                    st.write(f"🟢  Monad connected — balance: {bal:.4f} MON · SimGate not deployed (hashes computed locally)")
-                else:
-                    st.write("🟡  Monad RPC unreachable — simulation ran locally (blockchain not required)")
 
             st.write("🌐  Pushing population nodes to Neo4j — building graph…")
             try:
@@ -374,81 +349,6 @@ if result:
         ("TAM",           f"{assum['total_addressable_market']:,}",   "Total addressable market"),
     ], is_dark=is_dark)
     st.markdown("<div style='margin:.5rem 0'></div>", unsafe_allow_html=True)
-
-    on_chain = result.get("on_chain")
-    if on_chain:
-        gated        = on_chain.get("gated", False)
-        job_id       = on_chain.get("job_id")
-        bal_mon      = on_chain.get("balance_mon")
-        rpc_ok       = on_chain.get("rpc_reachable", bal_mon is not None)
-        chain_err    = on_chain.get("chain_error")
-        wallet_addr  = on_chain.get("wallet", "")
-        product_hash = on_chain.get("product_hash", "")
-        result_hash  = on_chain.get("result_hash", "")
-        req_tx       = on_chain.get("request_tx_url")
-        anc_tx       = on_chain.get("anchor_tx_url")
-
-        # Status badge config
-        if gated and job_id:
-            badge_color, badge_text, badge_emoji = "#818cf8", "ANCHORED ON MONAD", "💜"
-        elif rpc_ok:
-            badge_color, badge_text, badge_emoji = "#34d399", "MONAD CONNECTED", "🟢"
-        else:
-            badge_color, badge_text, badge_emoji = "#f59e0b", "MONAD FALLBACK", "🟡"
-
-        bal_display = f"{bal_mon:.6f} MON" if bal_mon is not None else "RPC unreachable"
-
-        tx_links = ""
-        if req_tx and not req_tx.startswith("anchor_error"):
-            tx_links += f'<a href="{req_tx}" target="_blank" style="color:#34d399;text-decoration:none;font-weight:600;">📄 Request Tx ↗</a>&nbsp;&nbsp;'
-        if anc_tx and not anc_tx.startswith("anchor_error"):
-            tx_links += f'<a href="{anc_tx}" target="_blank" style="color:#34d399;text-decoration:none;font-weight:600;">📄 Anchor Tx ↗</a>&nbsp;&nbsp;'
-        if job_id:
-            tx_links += f'<a href="{BACKEND}/api/simulate/verify/{job_id}" target="_blank" style="color:#a78bfa;text-decoration:none;font-weight:600;">🔍 Verify Proof ↗</a>'
-
-        setup_hint = ""
-
-        html_str = f"""<div style="background-color: {'#13141f' if is_dark else '#f3f4f6'}; border: 1px solid {'#2b2d42' if is_dark else '#e5e7eb'}; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.85rem;flex-wrap:wrap;">
-    <span style="font-size:1.2rem;">{badge_emoji}</span>
-    <h4 style="margin:0;color:{badge_color};font-family:'Inter',sans-serif;font-weight:700;">Monad Blockchain Integration</h4>
-    <span style="background:{badge_color}22;border:1px solid {badge_color};color:{badge_color};padding:0.15rem 0.6rem;border-radius:9999px;font-size:0.7rem;font-weight:800;letter-spacing:.08em;">{badge_text}</span>
-</div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0.85rem;font-size:0.83rem;font-family:'Inter',sans-serif;">
-    <div>
-        <span style="color:#6b7280;font-weight:600;">Wallet:</span><br>
-        <code style="word-break:break-all;background:{'#252630' if is_dark else '#e5e7eb'};padding:0.2rem 0.4rem;border-radius:4px;color:#34d399;">{wallet_addr}</code>
-    </div>
-    <div>
-        <span style="color:#6b7280;font-weight:600;">MON Balance:</span><br>
-        <span style="color:{'#34d399' if rpc_ok else '#f59e0b'};">{bal_display}</span>
-    </div>
-    <div>
-        <span style="color:#6b7280;font-weight:600;">Product Hash:</span><br>
-        <code style="word-break:break-all;background:{'#252630' if is_dark else '#e5e7eb'};padding:0.2rem 0.4rem;border-radius:4px;color:#9ca3af;">{product_hash[:20]}…</code>
-    </div>
-    <div>
-        <span style="color:#6b7280;font-weight:600;">Result Hash:</span><br>
-        <code style="word-break:break-all;background:{'#252630' if is_dark else '#e5e7eb'};padding:0.2rem 0.4rem;border-radius:4px;color:#9ca3af;">{result_hash[:20]}…</code>
-    </div>"""
-        if job_id:
-            html_str += f'\n    <div><span style="color:#6b7280;font-weight:600;">Job ID:</span><br><code style="word-break:break-all;background:{"#252630" if is_dark else "#e5e7eb"};padding:0.2rem 0.4rem;border-radius:4px;color:#f472b6;">{job_id}</code></div>'
-            
-        html_str += "\n</div>\n"
-
-        if tx_links:
-            html_str += f'<div style="margin-top:0.85rem;border-top:1px solid {"#1f202e" if is_dark else "#e5e7eb"};padding-top:0.65rem;display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.83rem;">{tx_links}</div>\n'
-
-        if chain_err:
-            html_str += f'<div style="margin-top:0.6rem;font-size:0.78rem;color:#ef4444;">⚠️ Chain error: {chain_err[:100]}</div>\n'
-
-        if setup_hint:
-            html_str += setup_hint
-
-        html_str += "</div>"
-
-        st.markdown(html_str, unsafe_allow_html=True)
-
 
 
 pg.run()
