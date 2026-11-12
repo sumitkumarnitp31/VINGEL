@@ -110,16 +110,82 @@ def _build_graph_html(gd: dict, is_dark: bool = True) -> str:
     return net.generate_html(notebook=False)
 
 
-def render_graph_preview(gd: dict, is_dark: bool = True) -> None:
+def _synthesize_graph_from_result(result: dict, sample_per_seg: int = 28) -> dict | None:
+    """Build a representative PyVis graph payload from simulation results when Neo4j is offline."""
+    if not result or not result.get("segments"):
+        return None
+    import random as _rnd
+    rng = _rnd.Random(42)
+
+    segs_raw = result.get("segments", [])
+    adopt_map = {a["segment_name"]: a.get("adoption_rate", 0.0) for a in result.get("segment_adoption", [])}
+    last_m = (result.get("base_monthly") or [{}])[-1]
+    churn_rate = last_m.get("churn_rate", 0.04)
+
+    segments = [
+        {
+            "seg_name": s["segment_name"],
+            "share": s.get("share", 0.0),
+            "desc": s.get("description", ""),
+            "ps": s.get("price_sensitivity", 0.5),
+            "ta": s.get("tech_affinity", 0.5),
+        }
+        for s in segs_raw
+    ]
+
+    users = []
+    counts = {"unaware": 0, "aware": 0, "active": 0, "churned": 0}
+    status_keys = {0: "unaware", 1: "aware", 2: "active", 3: "churned"}
+
+    for si, s in enumerate(segs_raw):
+        sname = s["segment_name"]
+        p_active = min(0.85, max(0.02, float(adopt_map.get(sname, 0.05))))
+        p_churned = min(0.25, p_active * min(0.8, churn_rate * 4.0))
+        p_aware = min(0.50, max(0.10, (1.0 - p_active - p_churned) * 0.45))
+        n_nodes = max(12, int(round(sample_per_seg * (0.6 + s.get("share", 0.15) * 2.5))))
+
+        for ui in range(n_nodes):
+            r = rng.random()
+            if r < p_active:
+                st_code = 2
+            elif r < p_active + p_churned:
+                st_code = 3
+            elif r < p_active + p_churned + p_aware:
+                st_code = 1
+            else:
+                st_code = 0
+            counts[status_keys[st_code]] += 1
+            lo_inc = float(s.get("income_monthly_min", 2500))
+            hi_inc = float(s.get("income_monthly_max", 8000))
+            users.append({
+                "uid": f"sim_{si}_{ui}",
+                "seg": sname,
+                "status": st_code,
+                "need_level": round(min(1.0, max(0.0, s.get("need_urgency", 0.5) + rng.uniform(-0.15, 0.15))), 2),
+                "trust_score": round(min(1.0, max(0.0, 1.0 - s.get("trust_threshold", 0.5) + rng.uniform(-0.15, 0.15))), 2),
+                "income_monthly": round(rng.uniform(lo_inc, hi_inc), 0),
+            })
+
+    return {
+        "source": "simulated_local",
+        "product_name": result.get("product_name", "Product"),
+        "total_stored": len(users),
+        "segments": segments,
+        "users": users,
+        "stats": counts,
+    }
+
+
+def render_graph_preview(gd: dict, is_dark: bool = True, result: dict | None = None) -> None:
     """Embed-friendly graph view — no controls, used on the Overview page."""
     source = gd.get("source", "unavailable")
     if source in ("unavailable", "not_found") or str(source).startswith("error"):
-        st.caption(
-            "Neo4j not running — start Neo4j Desktop and re-run the simulation to see the graph."
-            if source != "not_found" else
-            "Run a simulation first."
-        )
-        return
+        synth = _synthesize_graph_from_result(result) if result else None
+        if synth is None:
+            st.caption("Run a simulation first to view the population topology.")
+            return
+        gd = synth
+        st.caption("Simulated sample topology (connect Neo4j Desktop for full 2,000-node DB persistence).")
     try:
         components.html(_build_graph_html(gd, is_dark), height=560, scrolling=False)
     except ImportError:
@@ -162,21 +228,17 @@ def render_graph(backend_url: str, result: dict, is_dark: bool = True) -> None:
         except Exception:
             st.warning("Neo4j offline")
 
-    # ── Unavailable state ─────────────────────────────────────────────────
+    # ── Unavailable state: synthesize representative sample from result ───────
+    is_synth = False
     if source in ("unavailable", "not_found") or source.startswith("error"):
-        st.divider()
-        if source == "not_found":
+        synth = _synthesize_graph_from_result(result, sample_per_seg=35)
+        if synth is None:
+            st.divider()
             st.info("Run a simulation first, then click Refresh.")
-        else:
-            st.warning("Neo4j is not running.")
-            with st.expander("Setup guide"):
-                st.markdown("""
-1. Download **Neo4j Desktop** — [neo4j.com/download](https://neo4j.com/download/)
-2. Create a database, password `vingel_password` (or update `.env`)
-3. Start the database and re-run a simulation
-4. Click **Refresh** above
-                """)
-        return
+            return
+        gd = synth
+        is_synth = True
+        st.info("Showing interactive simulated population sample (connect Neo4j for persistent graph DB storage).")
 
     # ── Stats KPIs ────────────────────────────────────────────────────────
     stats        = gd.get("stats", {})
@@ -187,9 +249,9 @@ def render_graph(backend_url: str, result: dict, is_dark: bool = True) -> None:
     ks[0].markdown(
         f'<div style="background:{card_bg};border:1px solid {card_bdr};'
         f'border-radius:14px;padding:14px;text-align:center">'
-        f'<div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:{lbl_c};margin-bottom:6px">Stored Nodes</div>'
+        f'<div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:{lbl_c};margin-bottom:6px">{"Sampled Nodes" if is_synth else "Stored Nodes"}</div>'
         f'<div style="font-size:1.6rem;font-weight:900;color:{val_c}">{total_stored:,}</div>'
-        f'<div style="font-size:9.5px;color:{lbl_c}">users in Neo4j</div></div>',
+        f'<div style="font-size:9.5px;color:{lbl_c}">{"in-memory topology" if is_synth else "users in Neo4j"}</div></div>',
         unsafe_allow_html=True,
     )
     for i, (lbl, key) in enumerate([("Unaware","unaware"),("Aware","aware"),

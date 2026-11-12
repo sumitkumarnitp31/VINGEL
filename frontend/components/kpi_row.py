@@ -96,9 +96,9 @@ body{{background:transparent;padding:2px 0}}
 (function(){{
   document.querySelectorAll('.kc-val[data-raw]').forEach(function(el,idx){{
     var raw=el.getAttribute('data-raw');
-    var pre=(raw.match(/^[^\d]*/)  ||[''])[0];
-    var suf=(raw.match(/[^\d.%]*$/) ||[''])[0];
-    var num=parseFloat(raw.replace(/[^\d.]/g,''));
+    var pre=(raw.match(/^[^\\d]*/)  ||[''])[0];
+    var suf=(raw.match(/[^\\d.%]*$/) ||[''])[0];
+    var num=parseFloat(raw.replace(/[^\\d.]/g,''));
     if(isNaN(num)) return;
     var dur=1400,start=null;
     var big=num>=10000;

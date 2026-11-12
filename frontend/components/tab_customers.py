@@ -13,7 +13,19 @@ def render_customers(base_df: pd.DataFrame, p10_df: pd.DataFrame,
     CT = get_chart_theme(is_dark)
     title_color = "#e2e8f0" if is_dark else "#18181b"
     grid_color  = "rgba(255,255,255,0.04)" if is_dark else "rgba(0,0,0,0.06)"
-    axis_color  = "#334165" if is_dark else "#a1a1aa"
+    axis_color  = "#64748b" if is_dark else "#a1a1aa"
+
+    # ── Customer funnel summary KPIs ──────────────────────────────────────
+    total_acquired = int(base_df.new_customers.sum())
+    total_churned  = int(base_df.churned_customers.sum())
+    active_end     = int(base_df.total_customers.iloc[-1])
+    retention_pct  = (active_end / total_acquired * 100) if total_acquired > 0 else 0.0
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Cumulative Acquired", f"{total_acquired:,}")
+    c2.metric("Cumulative Churned",  f"{total_churned:,}")
+    c3.metric("Active at Horizon",   f"{active_end:,}")
+    c4.metric("Net Cohort Retained", f"{retention_pct:.1f}%")
+    st.markdown("<div style='margin:.4rem 0'></div>", unsafe_allow_html=True)
 
     # ── Active customers fan ──────────────────────────────────────────────
     fig = go.Figure()

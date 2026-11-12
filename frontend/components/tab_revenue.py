@@ -12,6 +12,18 @@ def render_revenue(base_df: pd.DataFrame, p10_df: pd.DataFrame,
     CT = get_chart_theme(is_dark)
     title_color = "#e2e8f0" if is_dark else "#18181b"
 
+    # ── Terminal ARR uncertainty metrics ──────────────────────────────────
+    p10_arr = float(p10_df.mrr.iloc[-1]) * 12
+    p50_arr = float(p50_df.mrr.iloc[-1]) * 12
+    p90_arr = float(p90_df.mrr.iloc[-1]) * 12
+    spread  = p90_arr - p10_arr
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("P10 Downside ARR", f"${p10_arr:,.0f}")
+    m2.metric("P50 Median ARR",   f"${p50_arr:,.0f}")
+    m3.metric("P90 Upside ARR",   f"${p90_arr:,.0f}")
+    m4.metric("P10–P90 Spread",   f"${spread:,.0f}")
+    st.markdown("<div style='margin:.4rem 0'></div>", unsafe_allow_html=True)
+
     # ── MRR Monte Carlo fan ───────────────────────────────────────────────
     fig = go.Figure()
     fig.add_trace(go.Scatter(

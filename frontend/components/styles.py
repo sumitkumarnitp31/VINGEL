@@ -651,6 +651,68 @@ pre {
 
 /* ── Divider ──────────────────────────────────────────────────────────── */
 .vg-divider { height: 1px; background: var(--border); margin: .9rem 0; }
+
+/* ── MSR Research-Grade Additions ─────────────────────────────────────── */
+@media (max-width: 980px) {
+  .vg-cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .vg-cards { grid-template-columns: 1fr; }
+}
+
+.vg-status-bar {
+  display: inline-flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border-mid);
+  border-radius: 10px; padding: .38rem .8rem; margin-bottom: 1rem;
+  font-size: .74rem; color: var(--t2) !important; -webkit-text-fill-color: var(--t2) !important;
+  box-shadow: var(--sh-sm);
+}
+.vg-status-ok  { color: #34d399 !important; -webkit-text-fill-color: #34d399 !important; font-weight: 700; }
+.vg-status-warn{ color: #fbbf24 !important; -webkit-text-fill-color: #fbbf24 !important; font-weight: 700; }
+.vg-status-sep { color: var(--t4) !important; -webkit-text-fill-color: var(--t4) !important; }
+
+.vg-eq-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: .75rem 0 1.25rem;
+}
+@media (max-width: 820px) { .vg-eq-grid { grid-template-columns: 1fr; } }
+.vg-eq-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--sh-sm);
+}
+.vg-eq-title {
+  font-size: .72rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  color: #818cf8 !important; -webkit-text-fill-color: #818cf8 !important; margin-bottom: .35rem;
+}
+.vg-eq-formula {
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: .78rem; color: var(--t1) !important; -webkit-text-fill-color: var(--t1) !important;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
+  padding: .45rem .65rem; margin: .35rem 0; overflow-x: auto;
+}
+.vg-eq-desc {
+  font-size: .76rem; color: var(--t3) !important; -webkit-text-fill-color: var(--t3) !important;
+  line-height: 1.5;
+}
+
+.vg-insight-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: .5rem 0 1.25rem;
+}
+@media (max-width: 900px) { .vg-insight-grid { grid-template-columns: repeat(2, 1fr); } }
+.vg-insight-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid #818cf8; border-radius: 10px; padding: .8rem .95rem;
+  box-shadow: var(--sh-sm);
+}
+.vg-insight-lbl {
+  font-size: .66rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--t3) !important; -webkit-text-fill-color: var(--t3) !important; margin-bottom: .25rem;
+}
+.vg-insight-val {
+  font-size: 1.05rem; font-weight: 800; color: var(--t1) !important; -webkit-text-fill-color: var(--t1) !important;
+}
+.vg-insight-note {
+  font-size: .72rem; color: var(--t3) !important; -webkit-text-fill-color: var(--t3) !important; margin-top: .15rem;
+}
 """
 
 # ── JS effects ───────────────────────────────────────────────────────────────
